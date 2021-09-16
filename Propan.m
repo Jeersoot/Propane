@@ -3,7 +3,9 @@ clc
 clear
 
 R = 8.31446; % Enhet: J/(K*mol)
-
+Tc = 369.8; % Enhet: K
+Pc = 4.249*10^6; % Enhet: Pa
+w = 0.152; % Enhet: -
 %% Deluppgift 1
 
 % Skapar en lista med all data vi har fått
@@ -72,7 +74,15 @@ P = {(lowest_temp(:,1))
     (highest_temp(:,1))};
 
 % Skapar en cell med resp. temperaturer
-T = {(222) (333) (425) (481)};
+T = {(222)
+    (333)
+    (425)
+    (481)};
+
+B = {(-0.00076)
+    (-0.0003)
+    (-0.00021)
+    (-0.00013)};
  
 % Plottar figur 2
 figure(2)
@@ -85,25 +95,70 @@ end
 figure(3)
 for i = 1:4
     plot(P{i},Z{i})
-    if i == 1
-        
-    end
     hold on
+    plot(P{i}, 1 + B{i}.*P{i}./(R.*T{i}))
 end
 
 % Finslipar 2:a och 3:e figuren
 for n = 2:3
-    legend('Lägsta temperatur (222 K)', 'Under kritisk temp. (333 K)', ...
-        'Över kritisk temp. (425 K)', 'Högsta temperatur (481 K)')
+    figure(n)
+    
     % Modifierar 3:e figuren
     if n == 3
-        xlim([0 4*10^6])
+        axis([0 4*10^6 0 1])
+        legend('Lägsta temperatur (222 K)', 'Z-approx (222 K)', ...
+        'Under kritisk temp. (333 K)', 'Z-approx (333 K)', ...
+        'Över kritisk temp. (425 K)', 'Z-approx (425 K)', ...
+        'Högsta temperatur (481 K)', 'Z-approx (481 K)')
+    else
+         legend('Lägsta temperatur (222 K)', 'Under kritisk temp. (333 K)', ...
+        'Över kritisk temp. (425 K)', 'Högsta temperatur (481 K)')
     end
     title('ZP-diagram, Propan')
     ylabel('Z [-]')
     xlabel('P [Pa]')
 end
 
-%function [Z G] = PengRobinson(P,T,Pc,Tc,w):
-%
-%end
+%% Deluppgift 3 & 4
+
+for i = 1:4
+    M = [];
+    for j = 1:length(P{i})
+        [Z,G] = PengRobinson(P{i}(j),T{i},Pc,Tc,w);
+        M = [M; [Z, G']];
+    end
+    figure(2)
+    plot(P{i},M(:,1),'o')
+    figure(3)
+    plot(P{i},M(:,1),'o')
+end
+
+function [Z,G] = PengRobinson(P,T,Pc,Tc,w)
+R = 8.31446; % Enhet: J/(K*mol)
+Tr = T/Tc;
+
+kappa = 0.37464 + 1.54226*w - 0.26992*(w^2); % Eq. (7.17)
+alpha = (1 + kappa*(1 - sqrt(Tr)))^2; % Eq. (7.17)
+
+ac = 0.45723553*((R*Tc)^2)/Pc; % Eq. (7.16)
+a = ac*alpha; % Eq. (7.16)
+A = a*P/(R^2*T^2); % Eq. (7.21)
+
+b = 0.07779607*R*Tc/Pc; % Eq. (7.16)
+B = b*P/(R*T); % Eq. (7.22)
+
+p = B - 1;
+q = A - 3*B^2 - 2*B;
+r = B^3 + B^2 - A*B;
+C = [1 p q r]; % C beskriver ekvationen: Z^3 + pZ^2 + qZ + r = 0
+z = roots(C);
+
+G = z-1-log(z-B)-(A/(B*sqrt(8)))*log((z+(1+sqrt(2))*B)./(z+(1-sqrt(2))*B));
+if isreal(z)
+    g = G;
+else
+    g = abs(imag(z));
+end
+[g, index] = sort(g);
+Z = z(index(1));
+end
