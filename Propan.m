@@ -8,7 +8,7 @@ Pc = 4.249*10^6; % Enhet: Pa
 w = 0.152; % Enhet: -
 %% Deluppgift 1
 
-% Skapar en lista med all data vi har fått
+% Skapar en cell med all data vi har fått
 data = {(csvread('propane_JMV.dat'))
     (csvread('propane_PV222K.dat'))
     (csvread('propane_PV240K.dat'))
@@ -26,7 +26,7 @@ data = {(csvread('propane_JMV.dat'))
     (csvread('propane_PV462K.dat'))
     (csvread('propane_PV481K.dat'))};
 
-% Skapar en lista med lika många färger som element vi har i data-listan
+% Skapar en cell med lika många färger som element vi har i data-cellen
 colours = {('rx'), (1/255*[255 165 0]), ('yellow'), ('green'), ('blue'), ...
     (1/255*[75 0 130]), ('magenta'), (1/255*[148 0 211]), ...
     (1/255*[255 0 255]), (1/255*[192 192 192]), (1/255*[255 215 0]), ...
@@ -61,8 +61,14 @@ highest_temp = data{end}; % 481 K
 under_critical_temp = data{8}; % 333 K
 over_critical_temp = data{end-3}; % 425 K
 
+% Sparar de fyra temperaturernas färger från figur 1
+colour4temp = {(colours{1,2})
+        (colours{1,8}) 
+        (colours{1,end-3})
+        (colours{1,end})};
+
 % 4x1 cell med 40x1-matriser
-Z = {(lowest_temp(:,2).*lowest_temp(:,1)./(222*R))
+Zaprx = {(lowest_temp(:,2).*lowest_temp(:,1)./(222*R))
     (under_critical_temp(:,2).*under_critical_temp(:,1)./(333*R))
     (over_critical_temp(:,2).*over_critical_temp(:,1)./(425*R))
     (highest_temp(:,2).*highest_temp(:,1)./(481*R))};
@@ -79,24 +85,28 @@ T = {(222)
     (425)
     (481)};
 
+% Skapar en cell med de olika B-värden
 B = {(-0.00076)
     (-0.0003)
     (-0.00021)
     (-0.00013)};
- 
-% Plottar figur 2
-figure(2)
-for i = 1:4
-    plot(P{i},Z{i})
-    hold on
-end
 
-% Plottar figur 3
-figure(3)
 for i = 1:4
-    plot(P{i},Z{i})
+    M = [];
+    for j = 1:length(P{i})
+        [Z,G] = PengRobinson(P{i}(j),T{i},Pc,Tc,w);
+        M = [M; [Z, G']];
+    end
+    figure(2)
+    plot(P{i},Zaprx{i}, 'Color', colour4temp{i})
     hold on
-    plot(P{i}, 1 + B{i}.*P{i}./(R.*T{i}))
+    plot(P{i},M(:,1),'o', 'Color', colour4temp{i})
+    
+    figure(3)
+    plot(P{i},Zaprx{i}, 'Color', colour4temp{i})
+    hold on
+    plot(P{i}, 1 + B{i}.*P{i}./(R.*T{i}), '--', 'Color', colour4temp{i})
+    plot(P{i},M(:,1),'o', 'Color', colour4temp{i})
 end
 
 % Finslipar 2:a och 3:e figuren
@@ -107,30 +117,20 @@ for n = 2:3
     if n == 3
         axis([0 4*10^6 0 1])
         legend('Lägsta temperatur (222 K)', 'Z-approx (222 K)', ...
-        'Under kritisk temp. (333 K)', 'Z-approx (333 K)', ...
+        'Peng-Rob (222 K)','Under kritisk temp. (333 K)', ...
+        'Z-approx (333 K)', 'Peng-Rob (333 K)', ...
         'Över kritisk temp. (425 K)', 'Z-approx (425 K)', ...
-        'Högsta temperatur (481 K)', 'Z-approx (481 K)')
+        'Peng-Rob (425 K)', 'Högsta temperatur (481 K)', ...
+        'Z-approx (481 K)', 'Peng-Rob (481 K)')
     else
-         legend('Lägsta temperatur (222 K)', 'Under kritisk temp. (333 K)', ...
-        'Över kritisk temp. (425 K)', 'Högsta temperatur (481 K)')
+         legend('Lägsta temperatur (222 K)', 'Peng-Rob (222 K)', ... 
+             'Under kritisk temp. (333 K)', 'Peng-Rob (333 K)', ...
+            'Över kritisk temp. (425 K)', 'Peng-Rob (425 K)', ...
+            'Högsta temperatur (481 K)', 'Peng-Rob (481 K)')
     end
     title('ZP-diagram, Propan')
     ylabel('Z [-]')
     xlabel('P [Pa]')
-end
-
-%% Deluppgift 3 & 4
-
-for i = 1:4
-    M = [];
-    for j = 1:length(P{i})
-        [Z,G] = PengRobinson(P{i}(j),T{i},Pc,Tc,w);
-        M = [M; [Z, G']];
-    end
-    figure(2)
-    plot(P{i},M(:,1),'o')
-    figure(3)
-    plot(P{i},M(:,1),'o')
 end
 
 function [Z,G] = PengRobinson(P,T,Pc,Tc,w)
