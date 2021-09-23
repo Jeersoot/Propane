@@ -133,6 +133,28 @@ for n = 2:3
     xlabel('P [Pa]')
 end
 
+%% 4.c)
+
+% 298 K
+PV296 = data{6};
+P296 = PV296(:,1);
+
+M = [];
+for i = 1:length(P296)
+    [Z,G] = PengRobinson(P296(i),298.15,Pc,Tc,w);
+    M = [M; [Z, G']];
+end
+
+% Plottar kolumnerna
+figure(4)
+for j = 2:4
+    plot(P296,M(:,j))
+    hold on
+end
+ylabel('(G-G^{ig})/(RT) [-]')
+xlabel('P [Pa]')
+legend('Z_{1}', 'Z_{2}', 'Z_{3}')
+
 function [Z,G] = PengRobinson(P,T,Pc,Tc,w)
 R = 8.31446; % Enhet: J/(K*mol)
 Tr = T/Tc;
